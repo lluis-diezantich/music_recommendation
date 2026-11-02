@@ -22,11 +22,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
-    "pytest-cov>=5.0",            # coverage, so an untested file is visible
-    "ruff>=0.6",
-    "ty>=0.0.89",                 # types; everything here is annotated already
-    "pre-commit>=3.7",            # ruff before the commit, not after it
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",            # coverage, so an untested file is visible
+    "ruff>=0.17.3",
+    "ty>=0.0.95",                 # types; everything here is annotated already
+    "pre-commit>=4.7.0",            # ruff before the commit, not after it
 ]
 
 # This is a collection of scripts, not a distributable package, but naming the
