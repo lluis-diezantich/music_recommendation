@@ -6,8 +6,8 @@ shape -- and this one is the authoritative answer about what you can actually
 play, because it is the catalogue you subscribe to.
 
 Approach borrowed from pawllo01/qobuz-artist-discography (MIT): the store-front
-API accepts a public app id plus the cookies any /discover page hands out, with
-NO account, NO token and NO request signature. An earlier version of this script
+API accepts a public app id, with NO account, NO token and NO request
+signature. An earlier version of this script
 tried to log in with email+password and burned a lot of time on it; that turned
 out to be unnecessary.
 
@@ -41,9 +41,9 @@ from core.qobuz import (
     album_detail,
     album_tracks,
     artist_releases,
+    open_store,
     search_artists,
     search_tracks,
-    store_cookies,
 )
 from core.radar import Batch, Radar, Release, execute, parser
 
@@ -160,7 +160,7 @@ class QobuzRadar(Radar):
         pass needs is finer than one sleep per artist anyway, so it does its
         own.
         """
-        cookies = store_cookies(args.store)
+        cookies = open_store(args.store)
         # Dedup of appearances runs across the whole run, not per artist: the
         # same record reaches two watched artists as two separate credits.
         folded: set[str] = set()

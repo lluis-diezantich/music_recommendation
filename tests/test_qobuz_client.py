@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import core.qobuz as cq
 
 
@@ -188,3 +190,25 @@ def test_search_artists_still_flattens_a_failure_for_the_human_facing_callers(mo
     assert cq.search_artists("Anyone") == []
     responses(monkeypatch, (500, "boom"))
     assert cq.search_artists_outcome("Anyone") == ([], "error")
+
+
+def test_open_store_only_fails_on_a_bad_store_code(monkeypatch):
+    """404 is the one fatal status, because it is the only one that means the
+    store code is wrong -- the API itself answers 200 for `store=zz-zz`."""
+    calls = responses(monkeypatch, (404, ""))
+    with pytest.raises(SystemExit, match="valid store code"):
+        cq.open_store("zz-zz")
+    assert calls == ["https://www.qobuz.com/zz-zz/magazine"]
+
+
+def test_open_store_survives_a_blocked_page(monkeypatch, capsys):
+    """The 403 that stopped the Friday job. The storefront pages sit behind an
+    edge filter and the API needs no cookies, so a block warns and goes on."""
+    responses(monkeypatch, (403, "Access Denied"))
+    assert cq.open_store("gb-en") == ""
+    assert "403" in capsys.readouterr().err
+
+
+def test_open_store_asks_the_page_that_answers(monkeypatch):
+    responses(monkeypatch, (200, "<html>"))
+    assert cq.open_store() == ""

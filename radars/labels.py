@@ -58,7 +58,7 @@ from core.qobuz import (
     album_tracks,
     artist_releases,
     label_catalogue,
-    store_cookies,
+    open_store,
 )
 from core.radar import Batch, Radar, Release, execute, parser
 
@@ -204,7 +204,7 @@ class LabelRadar(Radar):
             print(f"warning: {PEOPLE_FILE.name} is empty, so nothing can be credited - "
                   "run --people-from to build it", file=sys.stderr)
 
-        cookies = store_cookies(args.store)
+        cookies = open_store(args.store)
         families = self.families(args)
         # EVERY entry with a Qobuz id, muted ones included -- not
         # `favourites.ids_for`, which drops them. A mute means you do not want
@@ -425,7 +425,7 @@ def discover(store: str) -> int:
     if not watching:
         sys.exit("nothing in data/favourites.json to read labels from.")
 
-    cookies = store_cookies(store)
+    cookies = open_store(store)
     year = (dt.date.today() - dt.timedelta(days=365)).isoformat()
     found: dict[int, dict] = {}
     # Through core.names: the label is spelled `Jose Gonzalez` and the artist
