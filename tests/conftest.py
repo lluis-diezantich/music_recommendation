@@ -116,7 +116,7 @@ def qobuz(monkeypatch):
             # source over a shared runner: core.qobuz walks the pages, and
             # core.radar owns the state file, the clock and the pacing.
             monkeypatch.setattr(client, "get_json", self._get_json)
-            monkeypatch.setattr(radar, "store_cookies", lambda store: "c=1")
+            monkeypatch.setattr(radar, "open_store", lambda store: "c=1")
             monkeypatch.setattr(runner, "load_seen", lambda path: set(seen))
             monkeypatch.setattr(runner, "save_seen",
                                 lambda path, s: setattr(self, "saved", s))
@@ -327,7 +327,7 @@ def labels(monkeypatch):
             import sys
             monkeypatch.setattr(client, "get_json", self._get_json)
             monkeypatch.setattr(radar, "WORKED_FOR", worked_for or {})
-            monkeypatch.setattr(radar, "store_cookies", lambda store: "c=1")
+            monkeypatch.setattr(radar, "open_store", lambda store: "c=1")
             monkeypatch.setattr(runner, "load_seen", lambda path: set(seen))
             monkeypatch.setattr(runner, "save_seen",
                                 lambda path, s: setattr(self, "saved", s))

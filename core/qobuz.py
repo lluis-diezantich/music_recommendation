@@ -2,8 +2,9 @@
 
 APP_ID is the public web-player app id, not a secret -- the same value for
 everybody, which is why it is a default in code rather than configuration (see
-the note on it below). The API also wants the cookies any /discover page hands
-out. Both were copied into four scripts.
+the note on it below). The API wants that id and nothing else now -- the
+storefront page that used to hand out cookies is behind an edge filter, and
+open_store() is what is left of that step. Both were copied into four scripts.
 
 search_artists/pick moved here from stages/resolve_qobuz.py: name resolution is
 plumbing, not credits judgement, and leaving it in a stage meant anything that
@@ -48,23 +49,39 @@ def get(url: str, headers: dict[str, str] | None = None, timeout: int = 40):
     return _http_get(url, headers=headers, timeout=timeout, user_agent=UA, service="Qobuz")
 
 
-def store_cookies(store: str = STORE) -> str:
-    """Cookies any public storefront page issues; the API wants them present.
+def open_store(store: str = STORE) -> str:
+    """Check the store code is real, and return any cookies the page issued.
 
-    Loading the page is what matters: core.http's shared Session keeps a
-    cookie jar, so every later request to qobuz.com carries these whether or
-    not the caller passes them on. The string is still returned because
-    callers thread it through an explicit `cookie` header, and because being
-    able to see what was issued is worth more than the line it costs.
+    The check earns its request because the API does not do it: artist/get
+    answers 200 with the same records for `store=zz-zz` as for `gb-en`
+    (2026-11-06), so a typo in --store otherwise silently reports the default
+    catalogue. A 404 here is the only place it shows, so that one is fatal.
+
+    The cookies are what is left of a step that used to be load-bearing. This
+    GET used to be /<store>/discover, with any non-200 fatal, because the API
+    was believed to need the cookies that page set. On 2026-11-06 every
+    storefront /discover began answering 403 from Akamai -- from a GitHub
+    runner and from a laptop alike -- while artist/get, track/search,
+    album/get and autosuggest all answered 200 with no cookie at all. The
+    cookies were not required; the pre-flight was only failing.
+
+    /<store>/magazine answers 200 for gb-en, us-en, es-es, fr-fr and de-de and
+    404 for a bad code (same measurement), and sets no cookies -- so this
+    returns "" today and callers thread an empty `cookie` header. The plumbing
+    stays for the day Qobuz wants them again. Any other status warns and
+    continues: a blocked page is not a reason to skip the week.
 
     Reading the jar rather than the Set-Cookie headers is not a detail: urllib
     exposed repeated headers via get_all(), requests folds them into one
     CaseInsensitiveDict, and only the jar has them separated.
     """
-    status, _, _ = get(f"{SITE}/{store}/discover")
-    if status != 200:
-        raise SystemExit(f"could not load the {store} storefront (HTTP {status}) "
+    status, _, _ = get(f"{SITE}/{store}/magazine")
+    if status == 404:
+        raise SystemExit(f"there is no {store} storefront (HTTP 404) "
                          "- is that a valid store code?")
+    if status != 200:
+        print(f"warning: the {store} storefront page answered HTTP {status}; "
+              "going on without its cookies", file=sys.stderr)
     return "; ".join(f"{c.name}={c.value}" for c in SESSION.cookies
                      if c.name and "qobuz" in (c.domain or "qobuz"))
 
@@ -196,7 +213,7 @@ def artist_name(artist_id: int, store: str = STORE,
         "store": store,
     })
     headers = {"x-app-id": APP_ID,
-               "cookie": cookies if cookies is not None else store_cookies(store)}
+               "cookie": cookies if cookies is not None else open_store(store)}
     data, outcome = get_json(f"{API}/artist/get?{query}", headers, f"artist/get {artist_id}")
     if outcome != "ok" or not isinstance(data, dict):
         return None, outcome
